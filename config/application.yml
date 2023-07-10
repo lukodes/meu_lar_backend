@@ -1,0 +1,22 @@
+defaults: &defaults
+  default_login: "admin"
+  default_password: "DGZ*{l<jc=iVSjR"
+
+development:
+  <<: *defaults
+
+test:
+  <<: *defaults
+
+audit_test:
+  <<: *defaults
+
+audit_development:
+  <<: *defaults
+
+audit_production:
+  <<: *defaults
+
+production:
+ <<: *defaults
+

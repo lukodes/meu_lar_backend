@@ -1,0 +1,1951 @@
+image: atlassian/default-image:2
+clone:
+  depth: full        
+options:
+  docker: true
+  size: 2x
+pipelines:
+  custom:
+    dev:
+      - step:
+          name: Docker build all DEV
+          size: 2x
+          services:
+              - docker
+          script:
+              - echo "Docker Login"
+              - docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD
+
+              - echo "Building UCC"
+              - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+              - docker build -t $IMAGE_NAME .
+              - docker push $IMAGE_NAME
+
+              - echo "Building SNEAKERS"
+              - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+              - docker build -f Dockerfile_Sneakers -t $IMAGE_NAME .
+              - docker push $IMAGE_NAME
+
+              - echo "Building VOLLTER Code Runner"
+              - export IMAGE_NAME=gvn182/vollter-code-runner:$BITBUCKET_COMMIT
+              - docker build ./vollter-js/ -t $IMAGE_NAME
+              - docker push $IMAGE_NAME
+      - step:
+          name: Docker pull DEV
+          script:
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Connecting SSH and pulling"
+
+              - echo "Pulling UCC Tenant DEV"
+              - ssh ubuntu@54.81.42.175 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/ucc:$BITBUCKET_COMMIT"
+
+              - echo "Pulling Sneakers DEV"
+              - ssh ubuntu@54.81.42.175 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/sneakers:$BITBUCKET_COMMIT"
+
+              - echo "Pulling Vollter DEV"
+              - ssh ubuntu@54.81.42.175 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/vollter-code-runner:$BITBUCKET_COMMIT"
+      - step:
+          name: Migrate UCC DEV
+          deployment: dev
+          script:
+              - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Connecting SSH Running Migrate"
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --rm
+                --name=ucc_migrate
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_DEV
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e REFRESH_COOKIE_PASSWORD=$REFRESH_COOKIE_PASSWORD_DEV
+                -e COOKIE_SALT=$COOKIE_SALT_DEV
+                -e LOGIN_JWT_SECRET=$LOGIN_JWT_SECRET_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                $IMAGE_NAME
+                bundle exec rake db:migrate
+      - step:
+          name: Deploy UCC DEV
+          script:
+              - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Connecting SSH Removing container TENANT 1"
+              - ssh ubuntu@54.81.42.175 "sudo docker stop ucc; sudo docker rm ucc"
+              - echo "Connecting SSH Deploy container TENANT 1"
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=ucc
+                --restart=always
+                -p 443:443
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_DEV
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e FLIPPER_INTERFACE_PASSWORD=$FLIPPER_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e REFRESH_COOKIE_PASSWORD=$REFRESH_COOKIE_PASSWORD_DEV
+                -e COOKIE_SALT=$COOKIE_SALT_DEV
+                -e LOGIN_JWT_SECRET=$LOGIN_JWT_SECRET_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -d $IMAGE_NAME
+      - step:
+          name: Deploy SNEAKERS DEV
+          script:
+              - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Connecting SSH Removing container SNEAKERS 1"
+              - ssh ubuntu@54.81.42.175 "sudo docker stop sneakers; sudo docker rm sneakers"
+              - echo "Connecting SSH Deploy container SNEAKERS 1"
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=sneakers
+                --restart=always
+                -e FAYE=$FAYE_DEV
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e RABBIT_SERVER=$RABBIT_SERVER_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+                -e SNEAKERS_PREFETCH=1
+                -e SNEAKERS_THREADS=1
+                -e SNEAKERS_WORKERS=1
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -d $IMAGE_NAME
+                bundle exec ddtracerb exec rake sneakers:run
+      - step:
+          name: Deploy SIDEKIQ DEV
+          script:
+              - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Connecting SSH Removing container SIDEKIQ"
+
+              - ssh ubuntu@54.81.42.175 "sudo docker stop sidekiq_mailing || true; sudo docker rm sidekiq_mailing || true"
+              - ssh ubuntu@54.81.42.175 "sudo docker stop sidekiq_default || true; sudo docker rm sidekiq_default || true"
+              - ssh ubuntu@54.81.42.175 "sudo docker stop sidekiq_schedule || true; sudo docker rm sidekiq_schedule || true"
+              - ssh ubuntu@54.81.42.175 "sudo docker stop sidekiq_critical || true; sudo docker rm sidekiq_critical || true"
+              - echo "Connecting SSH Deploy container SIDEKIQ"
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=sidekiq_default
+                --restart=always
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -e MALLOC_ARENA_MAX=2
+                -d $IMAGE_NAME
+                bundle exec ddtracerb exec sidekiq -C config/sidekiq_default.yml
+
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=sidekiq_schedule
+                --restart=always
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -e MALLOC_ARENA_MAX=2
+                -d $IMAGE_NAME
+                bundle exec ddtracerb exec sidekiq -C config/sidekiq_schedule.yml
+
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=sidekiq_critical
+                --restart=always
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -e MALLOC_ARENA_MAX=2
+                -d $IMAGE_NAME
+                bundle exec ddtracerb exec sidekiq -C config/sidekiq_critical.yml
+
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=sidekiq_mailing
+                --restart=always
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e RAILS_ENV=$RAILS_ENV
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -e MALLOC_ARENA_MAX=2
+                -d $IMAGE_NAME
+                bundle exec ddtracerb exec sidekiq -C config/sidekiq_mailing.yml
+      - step:
+          name: Deploy Vollter Code Runner
+          script:
+              - export IMAGE_NAME=gvn182/vollter-code-runner:$BITBUCKET_COMMIT
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Connecting SSH Removing container VOLLTER Code Runner"
+              - ssh ubuntu@54.81.42.175 "sudo docker stop vollter-js || true; sudo docker rm vollter-js || true"
+              - echo "Connecting SSH Deploy container VOLLTER Code Runner"
+              - ssh ubuntu@54.81.42.175 sudo docker run
+                --name=vollter-js
+                --restart=always
+                --hostname=vollter-js
+                -p $VOLLTER_PORT_DEV:$VOLLTER_PORT_DEV
+                -e LOCKBOX=$LOCKBOX_DEV
+                -e FAYE=$FAYE_DEV
+                -e RABBIT_ADDRESS=$RABBIT_ADDRESS_DEV
+                -e RABBIT_STOMP=$RABBIT_STOMP_DEV
+                -e DD_ENABLED=false
+                -e JOB_WORKER_URL=$JOB_WORKER_URL_DEV
+                -e REDIS_SERVER=$REDIS_SERVER_DEV
+                -e DATABASE_USER=$DATABASE_USER_DEV
+                -e DATABASE_PASSWORD=$DATABASE_PASSWORD_DEV
+                -e RABBIT_HOST=$RABBIT_HOST_DEV
+                -e RABBIT_USER=$RABBIT_USER_DEV
+                -e RABBIT_PASSWORD=$RABBIT_PASSWORD_DEV
+                -e AWS_REGION=$AWS_REGION
+                -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_DEV
+                -e AWS_SECRET_KEY=$AWS_SECRET_KEY_DEV
+                -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+                -e RAILS_ENV=$RAILS_ENV
+                -e THREAD_COUNT=5
+                -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+                -e FAYE_SECRET=$FAYE_SECRET
+                -e NOTIFY_URL=$NOTIFY_URL
+                -e SHORTENER_URL=$SHORTENER_URL
+                -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+                -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+                -e WIT_URL=$WIT_URL
+                -e WIDGET_URL=$WIDGET_URL
+                -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+                -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_DEV
+                -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_DEV
+                -e VOLLTER_PORT=$VOLLTER_PORT_DEV
+                -e FB_APP_TOKEN=$FB_APP_TOKEN
+                -e MEMCACHE_SERVER=$MEMCACHE_SERVER_DEV
+                -e DATABASE_SHARED_IP=$DATABASE_IP_DEV
+                -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3=$DATABASE_IP_DEV
+                -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_DEV
+                -d $IMAGE_NAME
+      - step:
+          name: Clear old images DEV
+          script:
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Initializing prune images."
+              - echo "Pruning"
+              - ssh ubuntu@54.81.42.175 "sudo docker image prune -a --force"
+    qa:
+      - step:
+          name: Docker build all QA
+          size: 2x
+          services:
+            - docker
+          script:
+            - echo "Docker Login"
+            - docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD
+
+            - echo "Building UCC"
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - docker build -t $IMAGE_NAME .
+            - docker push $IMAGE_NAME
+
+            - echo "Building SNEAKERS"
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - docker build -f Dockerfile_Sneakers -t $IMAGE_NAME .
+            - docker push $IMAGE_NAME
+
+            - echo "Building VOLLTER Code Runner"
+            - export IMAGE_NAME=gvn182/vollter-code-runner:$BITBUCKET_COMMIT
+            - docker build ./vollter-js/ -t $IMAGE_NAME
+            - docker push $IMAGE_NAME
+      - step:
+          name: Docker pull QA
+          script:
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH and pulling"
+
+            - echo "Pulling UCC Tenant QA"
+            - ssh ubuntu@177.71.198.156 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/ucc:$BITBUCKET_COMMIT"
+
+            - echo "Pulling Sneakers QA"
+            - ssh ubuntu@177.71.198.156 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/sneakers:$BITBUCKET_COMMIT"
+
+            - echo "Pulling Vollter QA"
+            - ssh ubuntu@177.71.198.156 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/vollter-code-runner:$BITBUCKET_COMMIT"
+      - step:
+          name: Migrate UCC QA
+          deployment: qa
+          script:
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Running Migrate"
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --rm
+              --name=ucc_migrate
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_QA
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e REFRESH_COOKIE_PASSWORD=$REFRESH_COOKIE_PASSWORD_QA
+              -e COOKIE_SALT=$COOKIE_SALT_QA
+              -e LOGIN_JWT_SECRET=$LOGIN_JWT_SECRET_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              $IMAGE_NAME
+              bundle exec rake db:migrate
+      - step:
+          name: Deploy UCC QA
+          script:
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container TENANT 1"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop ucc; sudo docker rm ucc"
+            - echo "Connecting SSH Deploy container TENANT 1"
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=ucc
+              --restart=always
+              -p 443:443
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_QA
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e FLIPPER_INTERFACE_PASSWORD=$FLIPPER_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e REFRESH_COOKIE_PASSWORD=$REFRESH_COOKIE_PASSWORD_QA
+              -e COOKIE_SALT=$COOKIE_SALT_QA
+              -e LOGIN_JWT_SECRET=$LOGIN_JWT_SECRET_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -d $IMAGE_NAME
+      - step:
+          name: Deploy SNEAKERS QA
+          script:
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container SNEAKERS 1"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop sneakers; sudo docker rm sneakers"
+            - echo "Connecting SSH Deploy container SNEAKERS 1"
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=sneakers
+              --restart=always
+              -e FAYE=$FAYE_QA
+              -e LOCKBOX=$LOCKBOX_QA
+              -e RABBIT_SERVER=$RABBIT_SERVER_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e SNEAKERS_PREFETCH=1
+              -e SNEAKERS_THREADS=1
+              -e SNEAKERS_WORKERS=1
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec rake sneakers:run
+      - step:
+          name: Deploy SIDEKIQ QA
+          script:
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container SIDEKIQ"
+
+            - ssh ubuntu@177.71.198.156 "sudo docker stop sidekiq_mailing || true; sudo docker rm sidekiq_mailing || true"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop sidekiq_default || true; sudo docker rm sidekiq_default || true"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop sidekiq_schedule || true; sudo docker rm sidekiq_schedule || true"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop sidekiq_critical || true; sudo docker rm sidekiq_critical || true"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop sidekiq_low || true; sudo docker rm sidekiq_low || true"
+            - echo "Connecting SSH Deploy container SIDEKIQ"
+
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=sidekiq_default
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -e MALLOC_ARENA_MAX=2
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec sidekiq -C config/sidekiq_default.yml
+
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=sidekiq_schedule
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -e MALLOC_ARENA_MAX=2
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec sidekiq -C config/sidekiq_schedule.yml
+
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=sidekiq_critical
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -e MALLOC_ARENA_MAX=2
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec sidekiq -C config/sidekiq_critical.yml
+
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=sidekiq_mailing
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -e MALLOC_ARENA_MAX=2
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec sidekiq -C config/sidekiq_mailing.yml
+
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=sidekiq_low
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -e MALLOC_ARENA_MAX=2
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec sidekiq -C config/sidekiq_low.yml
+
+      - step:
+          name: Deploy Vollter Code Runner
+          script:
+            - export IMAGE_NAME=gvn182/vollter-code-runner:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container VOLLTER Code Runner"
+            - ssh ubuntu@177.71.198.156 "sudo docker stop vollter-js || true; sudo docker rm vollter-js || true"
+            - echo "Connecting SSH Deploy container VOLLTER Code Runner"
+            - ssh ubuntu@177.71.198.156 sudo docker run
+              --name=vollter-js
+              --restart=always
+              --hostname=vollter-js
+              -p $VOLLTER_PORT_QA:$VOLLTER_PORT_QA
+              -e LOCKBOX=$LOCKBOX_QA
+              -e FAYE=$FAYE_QA
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_QA
+              -e RABBIT_STOMP=$RABBIT_STOMP_QA
+              -e DD_ENABLED=false
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_QA
+              -e REDIS_SERVER=$REDIS_SERVER_QA
+              -e DATABASE_USER=$DATABASE_USER_QA
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_QA
+              -e RABBIT_HOST=$RABBIT_HOST_QA
+              -e RABBIT_USER=$RABBIT_USER_QA
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_QA
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY_QA
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY_QA
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e THREAD_COUNT=5
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_QA
+              -e VOLLTER_CODE_RUNNER=$VOLLTER_CODE_RUNNER_QA
+              -e VOLLTER_PORT=$VOLLTER_PORT_QA
+              -e FB_APP_TOKEN=$FB_APP_TOKEN
+              -e MEMCACHE_SERVER=$MEMCACHE_SERVER_QA
+              -e DATABASE_SHARED_IP=$DATABASE_IP_QA
+              -e DATABASE_SHARED_IP_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3=$DATABASE_IP_QA
+              -e DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_QA
+              -d $IMAGE_NAME
+      - step:
+          name: Clear old images QA
+          script:
+              - mkdir -p ~/.ssh
+              - touch ~/.ssh/id_rsa
+              - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+              - echo "Initializing prune images."
+              - echo "Pruning"
+              - ssh ubuntu@177.71.198.156 "sudo docker image prune -a --force"
+    production:
+      - parallel:
+          steps:
+              - step:
+                  name: Build and push sidekiq image
+                  script:
+                    - echo "Building Sneakers/Sidekiq image"
+                    - docker build -f Dockerfile_Sneakers -t voll-services:$BITBUCKET_COMMIT .
+                    - pipe: atlassian/aws-ecr-push-image:2.0.0
+                      variables:
+                        AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                        AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                        AWS_DEFAULT_REGION: sa-east-1
+                        IMAGE_NAME: voll-services
+                        TAGS: $BITBUCKET_COMMIT
+              - step:
+                  name: Build and push UCC image
+                  script:
+                    - echo "Building UCC image"
+                    - docker build -t ucc:$BITBUCKET_COMMIT .
+                    - pipe: atlassian/aws-ecr-push-image:2.0.0
+                      variables:
+                        AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                        AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                        AWS_DEFAULT_REGION: sa-east-1
+                        IMAGE_NAME: ucc
+                        TAGS: $BITBUCKET_COMMIT
+              - step:
+                  name: Build and push vollter image
+                  script:
+                    - echo "Building vollter"
+                    - docker build ./vollter-js/ -t vollter:$BITBUCKET_COMMIT
+                    - pipe: atlassian/aws-ecr-push-image:2.0.0
+                      variables:
+                        AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                        AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                        AWS_DEFAULT_REGION: sa-east-1
+                        IMAGE_NAME: vollter
+                        TAGS: $BITBUCKET_COMMIT
+      - step:
+          image: gvn182/uccbase:276
+          name: Bundle install & migrate
+          deployment: production
+          caches:
+              - gemfile #cache is defined below in the definitions section
+          script:
+              - export RAILS_ENV="production"
+              - export DATABASE_SHARED_IP=$DATABASE_SHARED_IP
+              - export DATABASE_SHARED_IP_REPLICA=$DATABASE_SHARED_IP_REPLICA
+              - export DATABASE_IP_SHARD1=$DATABASE_IP_SHARD1
+              - export DATABASE_IP_SHARD1_REPLICA=$DATABASE_IP_SHARD1_REPLICA
+              - export DATABASE_IP_SHARD2=$DATABASE_IP_SHARD2
+              - export DATABASE_IP_SHARD2_REPLICA=$DATABASE_IP_SHARD2_REPLICA
+              - export DATABASE_IP_SHARD3=$DATABASE_IP_SHARD3
+              - export DATABASE_IP_SHARD3_REPLICA=$DATABASE_IP_SHARD3_REPLICA
+              - export DATABASE_USER=$DATABASE_USER
+              - export DATABASE_PASSWORD=$DATABASE_PASSWORD
+              - cp config/database-sample.yml config/database.yml
+              - bundle config set --local without 'development test'
+              - bundle install --jobs=8 --path vendor/bundle
+              - bundle config set path 'vendor/bundle'
+              - bundle exec rake db:migrate
+          artifacts:
+              - vendor/**
+      - parallel:
+          steps:
+            - step:
+               name: Deploy Vollter ECS
+               script:
+                 - echo "Deploying Vollter ECS"
+                 - envsubst < ./ecs-task-definitions/vollter.json > voll-services.json
+                 - pipe: atlassian/aws-ecs-deploy:1.7.0
+                   variables:
+                     AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                     AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                     AWS_DEFAULT_REGION: $AWS_REGION
+                     CLUSTER_NAME: 'vollter'
+                     SERVICE_NAME: 'vollter-code'
+                     TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy UCC ECS
+                script:
+                  - echo "Deploying UCC"
+                  - envsubst < ./ecs-task-definitions/ucc.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'ucc-prod'
+                      SERVICE_NAME: 'ucc'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sidekiq Low ECS
+                script:
+                  - echo "Deploying sidekiq low"
+                  - envsubst < ./ecs-task-definitions/sidekiq-low.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sidekiq-prod'
+                      SERVICE_NAME: 'sidekiq_low'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sidekiq Mailing ECS
+                script:
+                  - echo "Deploying sidekiq mailing"
+                  - envsubst < ./ecs-task-definitions/sidekiq-mailing.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sidekiq-prod'
+                      SERVICE_NAME: 'sidekiq-mailing'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sidekiq Critical ECS
+                script:
+                  - echo "Deploying sidekiq critical"
+                  - envsubst < ./ecs-task-definitions/sidekiq-critical.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sidekiq-prod'
+                      SERVICE_NAME: 'sidekiq-critical'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sidekiq Schedule ECS
+                script:
+                  - echo "Deploying sidekiq schedule"
+                  - envsubst < ./ecs-task-definitions/sidekiq-schedule.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sidekiq-prod'
+                      SERVICE_NAME: 'sidekiq-schedule'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sidekiq Default ECS
+                script:
+                  - echo "Deploying sidekiq default"
+                  - envsubst < ./ecs-task-definitions/sidekiq-default.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sidekiq-prod'
+                      SERVICE_NAME: 'sidekiq-default'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sidekiq Reports ECS
+                script:
+                  - echo "Deploying sidekiq reports"
+                  - envsubst < ./ecs-task-definitions/sidekiq-reports.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sidekiq-prod'
+                      SERVICE_NAME: 'sidekiq-reports'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sneakers messages ECS
+                script:
+                  - echo "Deploying sneakers messages"
+                  - envsubst < ./ecs-task-definitions/sneakers-messages.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sneakers-prod'
+                      SERVICE_NAME: 'sneakers-messages'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                name: Deploy Sneakers others ECS
+                script:
+                  - echo "Deploying sneakers others"
+                  - envsubst < ./ecs-task-definitions/sneakers-others.json > voll-services.json
+                  - pipe: atlassian/aws-ecs-deploy:1.7.0
+                    variables:
+                      AWS_ACCESS_KEY_ID: $AWS_ECS_ACCESS_KEY
+                      AWS_SECRET_ACCESS_KEY: $AWS_ECS_SECRET_KEY
+                      AWS_DEFAULT_REGION: $AWS_REGION
+                      CLUSTER_NAME: 'sneakers-prod'
+                      SERVICE_NAME: 'sneakers-others'
+                      TASK_DEFINITION: 'voll-services.json'
+            - step:
+                image: gvn182/uccbase:276
+                name: Send Deploy Metrics
+                caches:
+                    - gemfile
+                script:
+                    - echo "Sending Deploy Metrics"
+                    - bundle install --path vendor/bundle
+                    - export RAILS_ENV="production"
+                    - export DD_ENABLED=true
+                    - export DD_AGENT_IP=18.231.94.49
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle exec rails runner deploy_metrics.rb $BITBUCKET_COMMIT
+    
+  branches:
+    verdecard_master:
+      - step:
+          name: Docker build all Verde Card
+          services:
+            - docker
+          script:
+            - echo "Docker Login"
+            - docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD
+
+            - echo "Building UCC"
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - docker build -t $IMAGE_NAME .
+            - docker push $IMAGE_NAME
+
+            - echo "Building FAYE Worker"
+            - export IMAGE_NAME=gvn182/faye-worker:$BITBUCKET_COMMIT
+            - docker build -f Dockerfile_Faye -t $IMAGE_NAME .
+            - docker push $IMAGE_NAME
+
+            - echo "Building SNEAKERS"
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - docker build -f Dockerfile_Sneakers -t $IMAGE_NAME .
+            - docker push $IMAGE_NAME
+      - step:
+          name: Docker pull Verde Card
+          script:
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH and pulling"
+
+            - echo "Pulling UCC Tenant VerdeCard"
+            - ssh ubuntu@54.233.242.19 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/ucc:$BITBUCKET_COMMIT"
+            - ssh ubuntu@18.230.127.235 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/ucc:$BITBUCKET_COMMIT"
+
+            - echo "Pulling Sneakers VerdeCard"
+            - ssh ubuntu@54.233.242.19 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/sneakers:$BITBUCKET_COMMIT"
+            - ssh ubuntu@18.230.127.235 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/sneakers:$BITBUCKET_COMMIT"
+            - ssh ubuntu@54.233.242.19 "sudo docker login --username $DOCKER_HUB_USERNAME --password $DOCKER_HUB_PASSWORD; sudo docker pull gvn182/faye-worker:$BITBUCKET_COMMIT"
+      - step:
+          name: Migrate UCC Verde Card
+          trigger: manual
+          script:
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH To Migrate"
+            - ssh ubuntu@54.233.242.19 sudo docker run
+              --rm
+              --name=ucc_migrate
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_VERDECARD
+              -e NOTIFY_URL=$NOTIFY_URL_VERDE
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              $IMAGE_NAME
+              bundle exec rake db:migrate
+      - step:
+          name: Deploy UCC Tenant 1 Verde Card
+          script:
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container TENANT 1"
+            - ssh ubuntu@54.233.242.19 "sudo docker stop ucc; sudo docker rm ucc"
+            - echo "Connecting SSH Deploy container TENANT 1"
+            - ssh ubuntu@54.233.242.19 sudo docker run
+              --name=ucc
+              --restart=always
+              -p 443:443
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_VERDECARD
+              -e NOTIFY_URL=$NOTIFY_URL_VERDE
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -d $IMAGE_NAME
+      - step:
+          name: Deploy UCC Tenant 2 Verde Card
+          script:
+            - export IMAGE_NAME=gvn182/ucc:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container TENANT 1"
+            - ssh ubuntu@18.230.127.235 "sudo docker stop ucc; sudo docker rm ucc"
+            - echo "Connecting SSH Deploy container TENANT 1"
+            - ssh ubuntu@18.230.127.235 sudo docker run
+              --name=ucc
+              --restart=always
+              -p 443:443
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API_VERDECARD
+              -e NOTIFY_URL=$NOTIFY_URL_VERDE
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -d $IMAGE_NAME
+      - step:
+          name: Deploy SNEAKERS 1 Verde Card
+          script:
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container SNEAKERS 1"
+            - ssh ubuntu@54.233.242.19 "sudo docker stop sneakers; sudo docker rm sneakers"
+            - echo "Connecting SSH Deploy container SNEAKERS 1"
+            - ssh ubuntu@54.233.242.19 sudo docker run
+              --name=sneakers
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_SERVER=$RABBIT_SERVER_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL_VERDE
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -e SNEAKERS_PREFETCH=5
+              -e SNEAKERS_THREADS=5
+              -e SNEAKERS_WORKERS=2
+              -e WORKERS=MessageOutboundRouterWorker,MessageInboundRouterWorker,AckWorker,PresenceWorker,InsertRawWordsWorker,ExtractAttendancesWorker,ExportAttendancesWorker,ExtractOutgoingAttendancesWorker,ExportOutgoingAttendancesWorker,HubspotExtractAttendancesWorker,ExtractQueueWorker,PipedriveExtractAttendancesWorker,AckWebhookWorker,QueueEndedWorker,ExtractQueuePositionWorker,ChatbotDashboardWorker,ApiMessagesWorker
+
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec rake sneakers:run
+      - step:
+          name: Deploy SNEAKERS 2 Verde Card
+          script:
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container SNEAKERS 2"
+            - ssh ubuntu@18.230.127.235 "sudo docker stop sneakers; sudo docker rm sneakers"
+            - echo "Connecting SSH Deploy container SNEAKERS 2"
+            - ssh ubuntu@18.230.127.235 sudo docker run
+              --name=sneakers
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_SERVER=$RABBIT_SERVER_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL_VERDE
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -e SNEAKERS_PREFETCH=5
+              -e SNEAKERS_THREADS=5
+              -e SNEAKERS_WORKERS=3
+              -e WORKERS=MessageOutboundRouterWorker,MessageInboundRouterWorker,AckWorker,ExternalChatbotInboundWorker
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec rake sneakers:run
+      - step:
+          name: Deploy SIDEKIQ Verde Card
+          script:
+            - export IMAGE_NAME=gvn182/sneakers:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container SIDEKIQ"
+            - ssh ubuntu@18.230.127.235 "sudo docker stop sidekiq; sudo docker rm sidekiq"
+            - echo "Connecting SSH Deploy container SIDEKIQ"
+            - ssh ubuntu@18.230.127.235 sudo docker run
+              --name=sidekiq
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL_VERDE
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -d $IMAGE_NAME
+              bundle exec ddtracerb exec sidekiq -C config/sidekiq.yml
+      - step:
+          name: Deploy FAYE Verde Card
+          script:
+            - export IMAGE_NAME=gvn182/faye-worker:$BITBUCKET_COMMIT
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Connecting SSH Removing container FAYE OUTBOUND"
+            - ssh ubuntu@18.230.127.235 "sudo docker stop faye-outbound; sudo docker rm faye-outbound"
+            - echo "Connecting SSH Deploy container FAYE OUTBOUND"
+            - ssh ubuntu@18.230.127.235 sudo docker run
+              --name=faye-outbound
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e THREAD_COUNT=20
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -d $IMAGE_NAME
+              rails runner faye_message_outbound_router_worker.rb
+
+            - echo "Connecting SSH Removing container FAYE ACK"
+            - ssh ubuntu@18.230.127.235 "sudo docker stop faye-ack; sudo docker rm faye-ack"
+            - echo "Connecting SSH Deploy container FAYE OUTBOUND"
+            - ssh ubuntu@18.230.127.235 sudo docker run
+              --name=faye-ack
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e THREAD_COUNT=5
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -d $IMAGE_NAME
+              rails runner faye_ack_worker.rb
+
+            - echo "Connecting SSH Removing container FAYE Inbound"
+            - ssh ubuntu@18.230.127.235 "sudo docker stop faye-inbound; sudo docker rm faye-inbound"
+            - echo "Connecting SSH Deploy container FAYE OUTBOUND"
+            - ssh ubuntu@18.230.127.235 sudo docker run
+              --name=faye-inbound
+              --restart=always
+              -e LOCKBOX=$LOCKBOX_VERDECARD
+              -e FAYE=$FAYE_VERDECARD
+              -e RABBIT_ADDRESS=$RABBIT_ADDRESS_VERDECARD
+              -e RABBIT_STOMP=$RABBIT_STOMP_VERDECARD
+              -e DD_ENABLED=true
+              -e DD_AGENT_IP=18.231.94.49
+              -e SLAVE_DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e JOB_WORKER_URL=$JOB_WORKER_URL_VERDECARD
+              -e REDIS_SERVER=$REDIS_SERVER_VERDECARD
+              -e DATABASE_USER=$DATABASE_USER_VERDECARD
+              -e DATABASE_PASSWORD=$DATABASE_PASSWORD_VERDECARD
+              -e DATABASE_IP=$DATABASE_IP_VERDECARD
+              -e RABBIT_HOST=$RABBIT_HOST_VERDECARD
+              -e RABBIT_USER=$RABBIT_USER_VERDECARD
+              -e RABBIT_PASSWORD=$RABBIT_PASSWORD_VERDECARD
+              -e AWS_REGION=$AWS_REGION
+              -e AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+              -e AWS_SECRET_KEY=$AWS_SECRET_KEY
+              -e RAILS_LOG_TO_STDOUT=$RAILS_LOG_TO_STDOUT
+              -e RAILS_ENV=$RAILS_ENV
+              -e THREAD_COUNT=5
+              -e FACEBOOK_HOOK_API=$FACEBOOK_HOOK_API
+              -e FAYE_SECRET=$FAYE_SECRET
+              -e NOTIFY_URL=$NOTIFY_URL
+              -e SHORTENER_URL=$SHORTENER_VERDECARD_URL
+              -e EXTERNAL_BOT_URL=$EXTERNAL_BOT_URL
+              -e GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS
+              -e WIT_URL=$WIT_URL
+              -e WIDGET_URL=$WIDGET_VERDECARD_URL
+              -e SIDEKIQ_INTERFACE_PASSWORD=$SIDEKIQ_INTERFACE_PASSWORD
+              -e CLAMAV_REMOTE_CONFIG_FILE=$CLAMAV_REMOTE_CONFIG_FILE_VERDECARD
+              -d $IMAGE_NAME
+              rails runner faye_message_inbound_router_worker.rb
+      - step:
+          name: Clear old images
+          script:
+            - mkdir -p ~/.ssh
+            - touch ~/.ssh/id_rsa
+            - echo $MY_SSH_KEY >> ~/.ssh/id_rsa
+            - echo "Initializing prune images."
+
+            - echo "Pruning 1"
+            - ssh ubuntu@54.233.242.19 "sudo docker image prune -a --force"
+
+            - echo "Pruning 2"
+            - ssh ubuntu@18.230.127.235 "sudo docker image prune -a --force"
+    master:
+      - step:
+          image: gvn182/uccbase:276
+          name: Bundle install & rubocop
+          caches:
+              - gemfile #cache is defined below in the definitions section
+          script:
+              - bundle install --path vendor/bundle
+              - bundle config set path 'vendor/bundle'
+              - bundle exec rubocop
+          artifacts:
+              - vendor/**
+      - parallel:
+          fail-fast: true
+          steps:
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 1
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load && CI_NODE_TOTAL=4 CI_NODE_INDEX=0  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 2
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load && CI_NODE_TOTAL=4 CI_NODE_INDEX=1  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 3
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load && CI_NODE_TOTAL=4 CI_NODE_INDEX=2  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 4
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load && CI_NODE_TOTAL=4 CI_NODE_INDEX=3  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+      - step:
+          image: gvn182/uccbase:276
+          name: Sonar validation
+          caches:
+            - sonar
+          script:
+            - bundle config set path 'vendor/bundle'
+            - chmod 777 -R vendor/bundle
+            - bundle exec rails coverage:report
+            - pipe: sonarsource/sonarcloud-scan:1.4.0
+              variables:
+                SONAR_TOKEN: ${SONAR_TOKEN}
+            - pipe: sonarsource/sonarcloud-quality-gate:0.1.6
+              variables:
+                SONAR_TOKEN: ${SONAR_TOKEN}
+  pull-requests:
+    '**':
+      - step:
+          image: gvn182/uccbase:276
+          name: Bundle install & rubocop
+          caches:
+              - gemfile #cache is defined below in the definitions section
+          script:
+              - bundle install --path vendor/bundle
+              - bundle config set path 'vendor/bundle'
+              - bundle exec rubocop
+          artifacts:
+              - vendor/**
+      - parallel:
+          fail-fast: true
+          steps:
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 1
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load
+                    - bundle exec rails runner ./build/development/test/agent_session_partitions.rb
+                    - CI_NODE_TOTAL=4 CI_NODE_INDEX=0  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 2
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load
+                    - bundle exec rails runner ./build/development/test/agent_session_partitions.rb
+                    - CI_NODE_TOTAL=4 CI_NODE_INDEX=1  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 3
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load
+                    - bundle exec rails runner ./build/development/test/agent_session_partitions.rb
+                    - CI_NODE_TOTAL=4 CI_NODE_INDEX=2  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+            - step:
+                image: gvn182/uccbase:276
+                name: Test unit - 4
+                services:
+                    - postgres
+                    - redis
+                    - rabbit
+                script:
+                    - export RAILS_ENV="test"
+                    - export DATABASE_IP="localhost"
+                    - export DATABASE_USER="root"
+                    - export DATABASE_PASSWORD="root"
+                    - export REDIS_SERVER="localhost"
+                    - export RABBIT_SERVER="amqp://guest:guest@localhost:5672"
+                    - export RABBIT_ADDRESS="localhost"
+                    - export RABBIT_HOST="localhost:5672"
+                    - export RABBIT_USER="guest"
+                    - export RABBIT_PASSWORD="guest"
+                    - export VOLLTER_CODE_RUNNER=http://54.81.42.175:1234/
+                    - cp config/database-sample.yml config/database.yml
+                    - bundle config set path 'vendor/bundle'
+                    - bundle exec rails db:create && bundle exec rails db:schema:load
+                    - bundle exec rails runner ./build/development/test/agent_session_partitions.rb
+                    - CI_NODE_TOTAL=4 CI_NODE_INDEX=3  bundle exec rake "knapsack:rspec[--fail-fast --format RspecJunitFormatter --out ./test-results/rspec.xml]"
+                    - mv coverage/.resultset.json coverage/result-$BITBUCKET_PARALLEL_STEP.json
+                artifacts:
+                    - "coverage/result-*.json"
+      - step:
+          image: gvn182/uccbase:276
+          name: Sonar validation
+          caches:
+            - sonar
+          script:
+            - bundle config set path 'vendor/bundle'
+            - chmod 777 -R vendor/bundle
+            - bundle exec rails coverage:report
+            - pipe: sonarsource/sonarcloud-scan:1.4.0
+              variables:
+                SONAR_TOKEN: ${SONAR_TOKEN}
+            - pipe: sonarsource/sonarcloud-quality-gate:0.1.6
+              variables:
+                SONAR_TOKEN: ${SONAR_TOKEN}
+definitions:
+  caches:
+    gemfile:
+      key:
+        files:
+          - Gemfile.lock
+      path: vendor/bundle
+    sonar: ~/.sonar/cache
+
+  services:
+    docker:
+      memory: 4096
+    postgres:
+      image: postgres:latest
+      variables:
+        POSTGRES_USER: root
+        POSTGRES_PASSWORD: root
+    redis:
+      image: redis:latest
+    rabbit:
+      image: rabbitmq:management
+      variables:
+        RABBITMQ_DEFAULT_USER: "guest"
+        RABBITMQ_DEFAULT_PASS: "guest"
