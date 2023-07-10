@@ -16,11 +16,11 @@ class ApplicationController < ActionController::API
     end
   end
 
-  def incorrect_credentials
-    render json: { error: 'Incorrect credentials' }, status: :unauthorized
+  def invalid_credentials
+    render json: { error: 'invalid credentials' }, status: :unauthorized
   end
 
   def invalid_refresh_cookie
-    render json: { error: 'Invalid refresh cookie' }, status: :unauthorized
+    render json: { error: 'invalid refresh cookie' }, status: :unauthorized
   end
 end

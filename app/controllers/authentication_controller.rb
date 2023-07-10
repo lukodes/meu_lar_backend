@@ -3,7 +3,7 @@ class AuthenticationController < ApplicationController
   JWT_EXPIRE_HOURS = 24.hours
 
   def login
-    return incorrect_credentials unless params[:username] == Settings.default_login && params[:password] == Settings.default_password
+    return invalid_credentials unless user_authenticated?
 
     payload = { user_id: 1, user_login: Settings.default_login }
     auth_jwt = JsonWebToken.encode(payload)
@@ -18,7 +18,11 @@ class AuthenticationController < ApplicationController
   private
 
   def item_params
-    params.permit(:login, :password)
+    params.permit(:username, :password)
+  end
+
+  def user_authenticated?
+    item_params[:username] == Settings.default_login && item_params[:password] == Settings.default_password
   end
 
   def refresh_token
@@ -28,15 +32,15 @@ class AuthenticationController < ApplicationController
     begin
       refresh_cookie = decrypt_cookie(cookies[:refresh_token])
     rescue => e
-      render json: { errors: e.message }, status: 400 and return
+      render json: { error: e.message }, status: 400 and return
     end
 
     decoded_token = JSON.parse(refresh_cookie)
     user = User.find_by(id: decoded_token["id"])
-    render json: { errors: "user_not_found" }, status: 404 and return if user.nil?
+    render json: { error: "user not found" }, status: 404 and return if user.nil?
 
     expires_at = decoded_token["expires_at"]
-    render json: { errors: "token expired" }, status: 477 and return if expires_at.nil? || expires_at < Time.zone.now
+    render json: { error: "token expired" }, status: 477 and return if expires_at.nil? || expires_at < Time.zone.now
 
     auth_jwt = JsonWebToken.encode(user_id: 1)
     token_data = { id: user.id, expires_at: Time.zone.now + REFRESH_COOKIE_INTERNAL_EXPIRE_HOURS, http_only: true }
