@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  resources :login do
+  resources :authentication do
     collection do
       post :login
       post :logout

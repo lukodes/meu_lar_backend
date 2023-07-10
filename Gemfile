@@ -7,14 +7,19 @@ ruby '2.7.6'
 gem 'rails', '~> 7.0.5'
 gem 'puma', '~> 5.0'
 gem 'jbuilder', '~> 2.11.5'
-gem 'bootstrap', '~> 5.2', require: false
+gem 'bootsnap', '~> 1.16', require: false
 gem 'rack-cors', '~> 1.1.1', require: 'rack/cors'
+gem 'settingslogic', '~> 2.0.9'
+
+#Storage
+gem 'sqlite3', '~> 1.3'
 
 # HTTP request
 gem 'faraday', '~> 1.4.3'
 
 # Tools
 gem 'tzinfo-data', '~> 1.2022.7'
+gem 'jwt', '~> 2.6.0'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
