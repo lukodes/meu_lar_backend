@@ -11,7 +11,6 @@ class AuthenticationController < ApplicationController
   end
 
   def logout
-    cookies.delete :refresh_token
     head :ok
   end
 
