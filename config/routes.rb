@@ -5,4 +5,10 @@ Rails.application.routes.draw do
       post :logout
     end
   end
+
+  resources :finder do
+    collection do
+      post :search_info
+    end
+  end
 end

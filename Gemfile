@@ -20,6 +20,10 @@ gem 'faraday', '~> 1.4.3'
 # Tools
 gem 'tzinfo-data', '~> 1.2022.7'
 gem 'jwt', '~> 2.6.0'
+gem 'google_places', '~> 2.0'
+gem 'geocoder', '~> 1.8'
+gem 'google_maps_service', '~> 0.4.2'
+gem 'odf-report', '~> 0.7.3'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
