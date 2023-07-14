@@ -1,44 +1,25 @@
 class ReportGeneratorService < ApplicationService
+  REPORT_PATH = Rails.root.join('tmp', 'reports').freeze
+
   def initialize(path, items)
     @path = path
     @items = items
   end
 
   def call
-    @top_rating_by_type = top_rating_by_type
+    top_rating_by_type = top_rating_by_type
     tables = build_tables
     tables = fill_table_values(tables, @items)
 
     report = ODFReport::Report.new(@path) do |r|
-      r.add_field :dt_c, "2017"
-      r.add_field :m1, rand(10.0..100.0).round(2)
-      r.add_field :m2, rand(10.0..100.0).round(2)
-      r.add_field :avg_price, rand(10.0..100.0).round(2)
-      r.add_field :school_num, @items["school"].count
-      r.add_field :hospital_num, @items["hospital"].count
-      r.add_field :gym_num, @items["gym"].count
-      r.add_field :market_num, @items["supermarket"].count
-      r.add_field :gym_top_rating, @top_rating_by_type["gym"][:name]
-      r.add_field :gym_top_rating_distance, @top_rating_by_type["gym"][:distance]
-      r.add_field :gym_top_rating_time_walking, @top_rating_by_type["gym"][:time_walking]
-      r.add_field :gym_top_rating_time_car, @top_rating_by_type["gym"][:time_car]
-      r.add_field :market_top_rating, @top_rating_by_type["supermarket"][:name]
-      r.add_field :market_top_rating_distance, @top_rating_by_type["supermarket"][:distance]
-      r.add_field :market_top_rating_time_walking, @top_rating_by_type["supermarket"][:time_walking]
-      r.add_field :market_top_rating_time_car, @top_rating_by_type["supermarket"][:time_car]
-      r.add_field :closest_hospital, 'Hospital São Paulo'
-      r.add_field :closest_hospital_distance, 13
-
-      tables.each do |table|
-        r.add_table(table[:name], table[:values]) do |t|
-          table[:fields].each do |field|
-            t.add_column(field.to_sym, field.to_sym)
-          end
-        end
-      end
+      add_fields(r)
+      add_tables(r, tables)
     end
 
-    report.generate("#{Rails.root}/tmp/reports/new_property_report_#{Time.zone.now.strftime('%s%L')}.odt")
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
   end
 
   private
@@ -105,6 +86,37 @@ class ReportGeneratorService < ApplicationService
     ]
   end
 
+  def add_fields(report)
+    report.add_field :dt_c, "2017"
+    report.add_field :m1, rand(10.0..100.0).round(2)
+    report.add_field :m2, rand(10.0..100.0).round(2)
+    report.add_field :avg_price, rand(10.0..100.0).round(2)
+    report.add_field :school_num, @items["school"].count
+    report.add_field :hospital_num, @items["hospital"].count
+    report.add_field :gym_num, @items["gym"].count
+    report.add_field :market_num, @items["supermarket"].count
+    report.add_field :gym_top_rating, top_rating_by_type["gym"][:name]
+    report.add_field :gym_top_rating_distance, top_rating_by_type["gym"][:distance]
+    report.add_field :gym_top_rating_time_walking, top_rating_by_type["gym"][:time_walking]
+    report.add_field :gym_top_rating_time_car, top_rating_by_type["gym"][:time_car]
+    report.add_field :market_top_rating, top_rating_by_type["supermarket"][:name]
+    report.add_field :market_top_rating_distance, top_rating_by_type["supermarket"][:distance]
+    report.add_field :market_top_rating_time_walking, top_rating_by_type["supermarket"][:time_walking]
+    report.add_field :market_top_rating_time_car, top_rating_by_type["supermarket"][:time_car]
+    report.add_field :closest_hospital, 'Hospital São Paulo'
+    report.add_field :closest_hospital_distance, 13
+  end
+
+  def add_tables(report, tables)
+    tables.each do |table|
+      report.add_table(table[:name], table[:values]) do |t|
+        table[:fields].each do |field|
+          t.add_column(field.to_sym, field.to_sym)
+        end
+      end
+    end
+  end
+
   def build_table_values(table, item_of_this_kind)
     common_fields = ['name', 'walking_time', 'car_time', 'rating']
 
@@ -152,6 +164,11 @@ class ReportGeneratorService < ApplicationService
       end
     end
   end
+
+  def generate_report_path
+    filename = "new_property_report_#{Time.zone.now.strftime('%Y_%m_%d_%H_%M_%S')}_#{SecureRandom.uuid}.odt"
+    REPORT_PATH.join(filename)
+  end
 end
 
 # variables = :dt_c,
@@ -174,7 +191,7 @@ end
 #             :closest_hospital_distance
 
 # 'OVERVIEW_TABLE', 'DAY_CARE_TABLE', 'M_SCHOOL_TABLE', 'H-SCHOOL_TABLE', 'COLLEGE_TABLE','GYM_TABLE', 'MARKET_TABLE', 'HOSPITAL_TABLE'
-    
+
 # OVERVIEW_TABLE = ['ov_type', 'ov_name', 'ov_walking_time', 'ov_car_time', 'ov_distance']
 # DAY_CARE_TABLE = ['day_care_name', 'day_care_walking_time', 'day_care_car_time', 'day_care_rating', 'day_care_avg_price']
 # M_SCHOOL_TABLE = ['m_SCHOOL_name', 'm_SCHOOL_walking_time', 'm_SCHOOL_car_time', 'm_SCHOOL_rating', 'm_SCHOOL_avg_price']

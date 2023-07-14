@@ -3,7 +3,7 @@ class FinderController < ApplicationController
 
   def search_info
     items = FinderService.call(item_params[:property][:zip_code])
-    path = "#{Rails.root}/app/assets/templates/plan_free_template.odt"
+    path = File.join(Rails.root, "app", "assets", "templates", "plan_free_template.odt")
 
     download_url = ReportGeneratorService.call(path, items)
 
