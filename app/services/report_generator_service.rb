@@ -1,9 +1,59 @@
 class ReportGeneratorService < ApplicationService
-  REPORT_PATH = Rails.root.join('tmp', 'reports').freeze
+  REPORT_PATH = "/tmp"
 
   def initialize(path, items)
     @path = path
     @items = items
+  end
+
+  def ensino
+    report = ODFReport::Report.new(@path) do |r|
+      r.add_table("TABLE_BERCARIO", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def ensino2
+    report = ODFReport::Report.new(@path) do |r|
+      r.add_table("TABLE_FUNDAMENTAL", @items[:fundamental], header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+
+      r.add_table("TABLE_MEDIO", @items[:medio], header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+
+      r.add_table("TABLE_FACULDADE", @items[:superior], header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
   end
 
   def call
@@ -167,7 +217,7 @@ class ReportGeneratorService < ApplicationService
 
   def generate_report_path
     filename = "new_property_report_#{Time.zone.now.strftime('%Y_%m_%d_%H_%M_%S')}_#{SecureRandom.uuid}.odt"
-    REPORT_PATH.join(filename)
+    "#{REPORT_PATH}/#{filename}"
   end
 end
 

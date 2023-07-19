@@ -24,6 +24,8 @@ gem 'google_places', '~> 2.0'
 gem 'geocoder', '~> 1.8'
 gem 'google_maps_service', '~> 0.4.2'
 gem 'odf-report', '~> 0.7.3'
+gem 'libreconv'
+gem 'combine_pdf'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'

@@ -7,7 +7,7 @@
 node_modules/
 dist/
 tmp/
-
+.~*
 # Compiled Java class files
 *.class
 
