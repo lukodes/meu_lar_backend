@@ -29,6 +29,30 @@ class ReportGeneratorService < ApplicationService
     file_path.to_s
   end
 
+  def veterinario
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :vet_count, @items.count
+      r.add_field :closest_vet, first[:name]
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_VET", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+
   def shopping
     report = ODFReport::Report.new(@path) do |r|
       first = @items.first
