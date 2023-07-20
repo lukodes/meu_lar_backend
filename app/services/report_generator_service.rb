@@ -6,6 +6,144 @@ class ReportGeneratorService < ApplicationService
     @items = items
   end
 
+  def drogaria
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :drogaria_count, @items.count
+      r.add_field :closest_drogaria, first[:name]
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_DROGARIA", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def shopping
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :count_shopping, @items.count
+      r.add_field :closest_shopping, first[:name]
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_SHOPPING", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def restaurante
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :count_restaurante, @items.count
+      r.add_field :best_restaurante, "MUDAR"
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_RESTAURANTE", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def posto
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :count_posto, @items.count
+      r.add_field :closest_posto, first[:name]
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_POSTO", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def academia
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :count_academia, @items.count
+      r.add_field :closest_academia, first[:name]
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_ACADEMIA", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def hospital
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :hospital_count, @items.count
+      r.add_field :closest_hospital, first[:name]
+      r.add_field :closest_walking, first[:walking_time]
+      r.add_field :closest_car, first[:car_time]
+
+      r.add_table("TABLE_HOSPITAL", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
   def ensino
     report = ODFReport::Report.new(@path) do |r|
       r.add_table("TABLE_BERCARIO", @items, header: true) do |t|

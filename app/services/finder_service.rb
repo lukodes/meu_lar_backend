@@ -6,11 +6,88 @@ class FinderService < ApplicationService
     @property_cordinates = Geocoder.search(@zip_code).first.coordinates
   end
 
+  def drogaria
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "farmácia", types: 'pharmacy', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(12).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
+  def shopping
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "shopping", types: 'shopping_mall', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
+  def restaurante
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "restaurante", types: 'restaurant', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
+  def veterinario
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "veterinario", types: 'veterinary_care', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
+  def posto
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "posto de gasolina", types: 'gas_station', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
+  def academia
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "academia", types: 'gym', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
+  def hospital
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "hospital", types: 'hospital', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
   def ensino
     result_items = []
-    bercarios = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "berçario", types: 'school', rankby: 'distance', language: 'pt-BR')
-    bercarios = bercarios.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
-    bercarios.take(7).each_with_index do |item, index|
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "berçario", types: 'school', rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
+    items.take(7).each_with_index do |item, index|
       distance = get_distance(item.lat, item.lng)
       result_items << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
     end
@@ -33,7 +110,7 @@ class FinderService < ApplicationService
       result_items[:medio] << { name: item.name, rating: item.rating, total_rating: item.json_result_object["user_ratings_total"], walking_time: distance[:walking], car_time: distance[:car] }
     end
 
-    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "ensino superior", types: 'school', rankby: 'distance', language: 'pt-BR')
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: "faculdade", types: 'university', rankby: 'distance', language: 'pt-BR')
     items = items.select { |item| (item.json_result_object["user_ratings_total"] || 0) > 5 }
     items.take(5).each_with_index do |item, index|
       distance = get_distance(item.lat, item.lng)
