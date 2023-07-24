@@ -6,6 +6,25 @@ class ReportGeneratorService < ApplicationService
     @items = items
   end
 
+  def transporte
+    report = ODFReport::Report.new(@path) do |r|
+      r.add_field :distancia_trabalho, @items[:work_distance]
+      r.add_field :car_peak, @items[:duration_peak]
+      r.add_field :car_nopeak, @items[:duration_nopeak]
+
+      r.add_table("TABLE_TRANSPORTE", @items[:instructions_public], header: true) do |t|
+        t.add_column(:step) { |item| "#{item[:index]}" }
+        t.add_column(:dist) { |item| "#{item[:distance]}" }
+        t.add_column(:instruction) { |item| "#{item[:instruction]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
   def drogaria
     report = ODFReport::Report.new(@path) do |r|
       first = @items.first
