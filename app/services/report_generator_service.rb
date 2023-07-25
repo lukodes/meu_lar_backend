@@ -95,6 +95,29 @@ class ReportGeneratorService < ApplicationService
     file_path.to_s
   end
 
+  def mercado
+    report = ODFReport::Report.new(@path) do |r|
+      first = @items.first
+      r.add_field :mercado_count, @items.count
+      r.add_field :best_mercado, "MUDAR"
+      r.add_field :best_walking, first[:walking_time]
+      r.add_field :best_car, first[:car_time]
+
+      r.add_table("TABLE_MERCADO", @items, header: true) do |t|
+        t.add_column(:name) { |item| "#{item[:name]}" }
+        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
+        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
+        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
+        t.add_column(:rating) { |item| "#{item[:rating]}" }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
   def restaurante
     report = ODFReport::Report.new(@path) do |r|
       first = @items.first

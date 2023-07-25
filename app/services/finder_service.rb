@@ -126,6 +126,19 @@ class FinderService < ApplicationService
     result_items
   end
 
+  def mercado
+    result_items = []
+    items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: 'mercado', types: 'supermarket',
+                                                                            rankby: 'distance', language: 'pt-BR')
+    items = items.select { |item| (item.json_result_object['user_ratings_total'] || 0) > 5 }
+    items.take(11).each_with_index do |item, _index|
+      distance = get_distance(item.lat, item.lng)
+      result_items << { name: item.name, rating: item.rating,
+                        total_rating: item.json_result_object['user_ratings_total'], walking_time: distance[:walking], car_time: distance[:car] }
+    end
+    result_items
+  end
+
   def hospital
     result_items = []
     items = @client.spots(@property_cordinates[0], @property_cordinates[1], keyword: 'hospital', types: 'hospital',
