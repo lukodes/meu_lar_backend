@@ -2,79 +2,107 @@ class FinderController < ApplicationController
   # before_action :authorize_request
 
   def search_info
-    template_path = Rails.root.join('app/assets/templates')
     service = FinderService.new(item_params[:property], item_params[:work])
-    result = service.transporte
-    path = File.join(template_path, 'transporte.odt')
-    download_url = ReportGeneratorService.new(path, result).transporte
-    Libreconv.convert(download_url, 'public/transporte.pdf')
-
-    service = FinderService.new(item_params[:property], item_params[:work])
-    result = service.mercado
-    path = File.join(template_path, 'mercado.odt')
-    download_url = ReportGeneratorService.new(path, result).mercado
-    Libreconv.convert(download_url, 'public/mercado.pdf')
-
-    result = service.ensino
-    path = File.join(template_path, 'ensino.odt')
-    download_url = ReportGeneratorService.new(path, result).ensino
-    Libreconv.convert(download_url, 'public/ensino.pdf')
-
-    result = service.ensino2
-    path = File.join(template_path, 'ensino2.odt')
-    download_url = ReportGeneratorService.new(path, result).ensino2
-    Libreconv.convert(download_url, 'public/ensino2.pdf')
-
-    result = service.drogaria
-    path = File.join(template_path, 'drogaria.odt')
-    download_url = ReportGeneratorService.new(path, result).drogaria
-    Libreconv.convert(download_url, 'public/drogaria.pdf')
-
-    result = service.hospital
-    path = File.join(template_path, 'hospital.odt')
-    download_url = ReportGeneratorService.new(path, result).hospital
-    Libreconv.convert(download_url, 'public/hospital.pdf')
-
-    result = service.academia
-    path = File.join(template_path, 'academia.odt')
-    download_url = ReportGeneratorService.new(path, result).academia
-    Libreconv.convert(download_url, 'public/academia.pdf')
-
-    result = service.posto
-    path = File.join(template_path, 'posto.odt')
-    download_url = ReportGeneratorService.new(path, result).posto
-    Libreconv.convert(download_url, 'public/posto.pdf')
-
-    result = service.veterinario
-    path = File.join(template_path, 'veterinario.odt')
-    download_url = ReportGeneratorService.new(path, result).veterinario
-    Libreconv.convert(download_url, 'public/veterinario.pdf')
-
-    result = service.restaurante
-    path = File.join(template_path, 'restaurante.odt')
-    download_url = ReportGeneratorService.new(path, result).restaurante
-    Libreconv.convert(download_url, 'public/restaurante.pdf')
-
-    result = service.shopping
-    path = File.join(template_path, 'shopping.odt')
-    download_url = ReportGeneratorService.new(path, result).shopping
-    Libreconv.convert(download_url, 'public/shopping.pdf')
-
+    report_service = ReportGeneratorService.new
     pdf = CombinePDF.new
-    pdf << CombinePDF.load('public/ensino.pdf')
-    pdf << CombinePDF.load('public/ensino2.pdf')
-    pdf << CombinePDF.load('public/transporte.pdf')
-    pdf << CombinePDF.load('public/drogaria.pdf')
-    pdf << CombinePDF.load('public/hospital.pdf')
-    pdf << CombinePDF.load('public/academia.pdf')
-    pdf << CombinePDF.load('public/posto.pdf')
-    pdf << CombinePDF.load('public/veterinario.pdf')
-    pdf << CombinePDF.load('public/restaurante.pdf')
-    pdf << CombinePDF.load('public/shopping.pdf')
-    pdf << CombinePDF.load('public/mercado.pdf')
+    convenience_items = service.convenience(place_list)
+    convenience_items.each do |item|
+      odt_path = report_service.generate(item)
+      pdf_path = "public/#{item[:name]}"
+      Libreconv.convert(odt_path, pdf_path)
+      pdf << CombinePDF.load(pdf_path)
+    end
+
+    school_items = service.convenience(school_list)
+    odt_path = report_service.generate_school(school_items)
+    pdf_path = 'public/school'
+    Libreconv.convert(odt_path, pdf_path)
+    pdf << CombinePDF.load(pdf_path)
 
     pdf.save 'public/combined_full.pdf'
-    render json: download_url, status: :ok
+    head :ok
+  end
+
+  def place_list
+    [
+      {
+        name: 'drogaria',
+        keyword: 'farmácia',
+        type: 'pharmacy',
+        count: '12'
+      },
+      {
+        name: 'shopping',
+        keyword: 'shopping',
+        type: 'shopping_mall',
+        count: '7'
+      },
+      {
+        name: 'restaurante',
+        keyword: 'restaurante',
+        type: 'restaurant',
+        count: '7'
+      },
+      {
+        name: 'veterinario',
+        keyword: 'veterinario',
+        type: 'veterinary_care',
+        count: '7'
+      },
+      {
+        name: 'posto',
+        keyword: 'posto de gasolina',
+        type: 'gas_station',
+        count: '7'
+      },
+      {
+        name: 'academia',
+        keyword: 'academia',
+        type: 'gym',
+        count: '7'
+      },
+      {
+        name: 'mercado',
+        keyword: 'mercado',
+        type: 'supermarket',
+        count: '11'
+      },
+      {
+        name: 'hospital',
+        keyword: 'hospital',
+        type: 'hospital',
+        count: '7'
+      },
+      {
+        name: 'ensino_main',
+        keyword: 'berçario',
+        type: 'school',
+        count: '7'
+      }
+    ].freeze
+  end
+
+  def school_list
+    [
+      {
+        name: 'ensino_fundamental',
+        keyword: 'ensino fundamental',
+        type: 'school',
+        count: '5',
+      },
+      {
+        name: 'ensino_medio',
+        keyword: 'ensino médio',
+        type: 'school',
+        count: '5',
+      },
+      {
+        name: 'ensino_superior',
+        keyword: 'faculdade',
+        type: 'university',
+        count: '5',
+      }
+    ]
   end
 
   private

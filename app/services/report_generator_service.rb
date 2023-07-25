@@ -1,21 +1,26 @@
 class ReportGeneratorService < ApplicationService
-  REPORT_PATH = "/tmp"
+  REPORT_PATH = '/tmp'
 
-  def initialize(path, items)
-    @path = path
-    @items = items
+  def initialize
+    @template_path = Rails.root.join('app/assets/templates')
   end
 
-  def transporte
-    report = ODFReport::Report.new(@path) do |r|
-      r.add_field :distancia_trabalho, @items[:work_distance]
-      r.add_field :car_peak, @items[:duration_peak]
-      r.add_field :car_nopeak, @items[:duration_nopeak]
+  def generate(item)
+    report = ODFReport::Report.new("#{@template_path}/#{item[:name]}.odt") do |r|
+      r.add_field :count, item[:total_count]
+      r.add_field :closest_name, item[:closest][:name]
+      r.add_field :closest_by_foot, item[:closest][:by_foot]
+      r.add_field :closest_by_car, item[:closest][:by_foot]
+      r.add_field :top_name, item[:top][:name]
+      r.add_field :top_by_foot, item[:top][:by_foot]
+      r.add_field :top_by_car, item[:top][:by_foot]
 
-      r.add_table("TABLE_TRANSPORTE", @items[:instructions_public], header: true) do |t|
-        t.add_column(:step) { |item| "#{item[:index]}" }
-        t.add_column(:dist) { |item| "#{item[:distance]}" }
-        t.add_column(:instruction) { |item| "#{item[:instruction]}" }
+      r.add_table('TABLE', item[:items], header: true) do |t|
+        t.add_column(:name) { |table_item| table_item[:name].to_s }
+        t.add_column(:by_foot) { |table_item| table_item[:by_foot].to_s }
+        t.add_column(:by_car) { |table_item| table_item[:by_car].to_s }
+        t.add_column(:total_rating) { |table_item| table_item[:total_rating].to_s }
+        t.add_column(:rating) { |table_item| table_item[:rating].to_s }
       end
     end
 
@@ -25,437 +30,48 @@ class ReportGeneratorService < ApplicationService
     file_path.to_s
   end
 
-  def drogaria
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :drogaria_count, @items.count
-      r.add_field :closest_drogaria, first[:name]
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_DROGARIA", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def veterinario
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :vet_count, @items.count
-      r.add_field :closest_vet, first[:name]
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_VET", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-
-  def shopping
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :count_shopping, @items.count
-      r.add_field :closest_shopping, first[:name]
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_SHOPPING", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def mercado
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :mercado_count, @items.count
-      r.add_field :best_mercado, "MUDAR"
-      r.add_field :best_walking, first[:walking_time]
-      r.add_field :best_car, first[:car_time]
-
-      r.add_table("TABLE_MERCADO", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def restaurante
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :count_restaurante, @items.count
-      r.add_field :best_restaurante, "MUDAR"
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_RESTAURANTE", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def posto
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :count_posto, @items.count
-      r.add_field :closest_posto, first[:name]
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_POSTO", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def academia
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :count_academia, @items.count
-      r.add_field :closest_academia, first[:name]
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_ACADEMIA", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def hospital
-    report = ODFReport::Report.new(@path) do |r|
-      first = @items.first
-      r.add_field :hospital_count, @items.count
-      r.add_field :closest_hospital, first[:name]
-      r.add_field :closest_walking, first[:walking_time]
-      r.add_field :closest_car, first[:car_time]
-
-      r.add_table("TABLE_HOSPITAL", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def ensino
-    report = ODFReport::Report.new(@path) do |r|
-      r.add_table("TABLE_BERCARIO", @items, header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def ensino2
-    report = ODFReport::Report.new(@path) do |r|
-      r.add_table("TABLE_FUNDAMENTAL", @items[:fundamental], header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-
-      r.add_table("TABLE_MEDIO", @items[:medio], header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-
-      r.add_table("TABLE_FACULDADE", @items[:superior], header: true) do |t|
-        t.add_column(:name) { |item| "#{item[:name]}" }
-        t.add_column(:walking_time) { |item| "#{item[:walking_time]}" }
-        t.add_column(:car_time) { |item| "#{item[:car_time]}" }
-        t.add_column(:total_rating) { |item| "#{item[:total_rating]}" }
-        t.add_column(:rating) { |item| "#{item[:rating]}" }
-      end
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  def call
-    top_rating_by_type = top_rating_by_type
-    tables = build_tables
-    tables = fill_table_values(tables, @items)
-
-    report = ODFReport::Report.new(@path) do |r|
-      add_fields(r)
-      add_tables(r, tables)
-    end
-
-    file_path = generate_report_path
-    report.generate(file_path)
-
-    file_path.to_s
-  end
-
-  private
-
-  def top_rating_by_type
-    types = @items.keys
-
-    top_rating_by_type = {}
-
-    types.each do |type|
-      top_rating_by_type[type] = {}
-      ratings = @items[type].sort_by { |item| item.rating.to_i }
-      top_rating_by_type[type][:name] = ratings.last.name
-      top_rating_by_type[type][:distance] = ratings.last.json_result_object["distance"]
-      top_rating_by_type[type][:time_walking] = ratings.last.json_result_object["walking_time"]
-      top_rating_by_type[type][:time_car] = ratings.last.json_result_object["car_time"]
-    end
-
-    return top_rating_by_type
-  end
-
-  def build_tables
-    tables = [
-      {
-        name: 'OVERVIEW',
-        fields: ['type', 'name', 'walking_time', 'car_time', 'distance'],
-        values: []
-      },
-      {
-        name: 'DAY_CARE',
-        fields: ['name', 'walking_time', 'car_time', 'rating', 'avg_price'],
-        values: []
-      },
-      {
-        name: 'M_SCHOOL',
-        fields: ['name', 'walking_time', 'car_time', 'rating', 'avg_price'],
-        values: []
-      },
-      {
-        name: 'H_SCHOOL',
-        fields: ['name', 'walking_time', 'car_time', 'rating', 'avg_price'],
-        values: []
-      },
-      {
-        name: 'COLLEGE',
-        fields: ['name', 'walking_time', 'car_time', 'rating', 'avg_price'],
-        values: []
-      },
-      {
-        name: 'GYM',
-        fields: ['name', 'walking_time', 'car_time', 'rating'],
-        values: []
-      },
-      {
-        name: 'MARKET',
-        fields: ['name', 'walking_time', 'car_time', 'rating'],
-        values: []
-      },
-      {
-        name: 'HOSPITAL',
-        fields: ['name', 'walking_time', 'car_time', 'rating', 'access'],
-        values: []
-      }
-    ]
-  end
-
-  def add_fields(report)
-    report.add_field :dt_c, "2017"
-    report.add_field :m1, rand(10.0..100.0).round(2)
-    report.add_field :m2, rand(10.0..100.0).round(2)
-    report.add_field :avg_price, rand(10.0..100.0).round(2)
-    report.add_field :school_num, @items["school"].count
-    report.add_field :hospital_num, @items["hospital"].count
-    report.add_field :gym_num, @items["gym"].count
-    report.add_field :market_num, @items["supermarket"].count
-    report.add_field :gym_top_rating, top_rating_by_type["gym"][:name]
-    report.add_field :gym_top_rating_distance, top_rating_by_type["gym"][:distance]
-    report.add_field :gym_top_rating_time_walking, top_rating_by_type["gym"][:time_walking]
-    report.add_field :gym_top_rating_time_car, top_rating_by_type["gym"][:time_car]
-    report.add_field :market_top_rating, top_rating_by_type["supermarket"][:name]
-    report.add_field :market_top_rating_distance, top_rating_by_type["supermarket"][:distance]
-    report.add_field :market_top_rating_time_walking, top_rating_by_type["supermarket"][:time_walking]
-    report.add_field :market_top_rating_time_car, top_rating_by_type["supermarket"][:time_car]
-    report.add_field :closest_hospital, 'Hospital São Paulo'
-    report.add_field :closest_hospital_distance, 13
-  end
-
-  def add_tables(report, tables)
-    tables.each do |table|
-      report.add_table(table[:name], table[:values]) do |t|
-        table[:fields].each do |field|
-          t.add_column(field.to_sym, field.to_sym)
+  def generate_school(items)
+    report = ODFReport::Report.new("#{@template_path}/ensino_other.odt") do |r|
+      items.each do |item|
+        r.add_table(item[:name].upcase, item[:items], header: true) do |t|
+          t.add_column(:name) { |table_item| table_item[:name].to_s }
+          t.add_column(:by_foot) { |table_item| table_item[:by_foot].to_s }
+          t.add_column(:by_car) { |table_item| table_item[:by_car].to_s }
+          t.add_column(:total_rating) { |table_item| table_item[:total_rating].to_s }
+          t.add_column(:rating) { |table_item| table_item[:rating].to_s }
         end
       end
     end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
   end
 
-  def build_table_values(table, item_of_this_kind)
-    common_fields = ['name', 'walking_time', 'car_time', 'rating']
+  # def transporte
+  #   report = ODFReport::Report.new(@path) do |r|
+  #     r.add_field :distancia_trabalho, @items[:work_distance]
+  #     r.add_field :car_peak, @items[:duration_peak]
+  #     r.add_field :car_nopeak, @items[:duration_nopeak]
 
-    table[:values] << {}
-    common_fields.each do |field|
-      if field.include?('time')
-        table[:values].last[field] = item_of_this_kind.json_result_object[field]
-      else
-        table[:values].last[field] = item_of_this_kind[field.to_sym]
-      end
-    end
+  #     r.add_table('TABLE_TRANSPORTE', @items[:instructions_public], header: true) do |t|
+  #       t.add_column(:step) { |item| "#{item[:index]}" }
+  #       t.add_column(:dist) { |item| "#{item[:distance]}" }
+  #       t.add_column(:instruction) { |item| "#{item[:instruction]}" }
+  #     end
+  #   end
 
-    table = treatment_by_type(table, item_of_this_kind)
-  end
+  #   file_path = generate_report_path
+  #   report.generate(file_path)
 
-  def treatment_by_type(table, item_of_this_kind)
-    case table[:name]
-    when 'OVERVIEW'
-      table[:values].last['type'] = item_of_this_kind['types'].first
-      table[:values].last['distance'] = item_of_this_kind['json_result_object']['distance']
-    when 'DAY_CARE', 'M_SCHOOL', 'H_SCHOOL', 'COLLEGE'
-      table[:values].last['avg_price'] = rand(10.0..100.0).round(2)
-    when 'HOSPITAL'
-      table[:values].last['access'] = 'Particular'
-    end
+  #   file_path.to_s
+  # end
 
-    return table
-  end
-
-  def fill_table_values(tables, items)
-    item_of_kind = {
-      'OVERVIEW' => items.map { |item| item.second.first },
-      'DAY_CARE' => items['school'],
-      'M_SCHOOL' => items['school'],
-      'H_SCHOOL' => items['school'],
-      'COLLEGE' => items['school'],
-      'GYM' => items['gym'],
-      'MARKET' => items['supermarket'],
-      'HOSPITAL' => items['hospital']
-    }
-
-    tables.each do |table|
-      item_of_kind[table[:name]].each do |spot|
-        table = build_table_values(table, spot)
-      end
-    end
-  end
+  private
 
   def generate_report_path
     filename = "new_property_report_#{Time.zone.now.strftime('%Y_%m_%d_%H_%M_%S')}_#{SecureRandom.uuid}.odt"
     "#{REPORT_PATH}/#{filename}"
   end
 end
-
-# variables = :dt_c,
-#             :m1,
-#             :m2,
-#             :avg_price,
-#             :school_num,
-#             :hospital_num,
-#             :gym_num,
-#             :market_num,
-#             :gym_top_rating,
-#             :gym_top_rating_distance,
-#             :gym_top_rating_time_walking,
-#             :gym_top_rating_time_car,
-#             :market_top_rating,
-#             :market_top_rating_distance,
-#             :market_top_rating_time_walking,
-#             :market_top_rating_time_car,
-#             :closest_hospital,
-#             :closest_hospital_distance
-
-# 'OVERVIEW_TABLE', 'DAY_CARE_TABLE', 'M_SCHOOL_TABLE', 'H-SCHOOL_TABLE', 'COLLEGE_TABLE','GYM_TABLE', 'MARKET_TABLE', 'HOSPITAL_TABLE'
-
-# OVERVIEW_TABLE = ['ov_type', 'ov_name', 'ov_walking_time', 'ov_car_time', 'ov_distance']
-# DAY_CARE_TABLE = ['day_care_name', 'day_care_walking_time', 'day_care_car_time', 'day_care_rating', 'day_care_avg_price']
-# M_SCHOOL_TABLE = ['m_SCHOOL_name', 'm_SCHOOL_walking_time', 'm_SCHOOL_car_time', 'm_SCHOOL_rating', 'm_SCHOOL_avg_price']
-# H_SCHOOL_TABLE = ['h_SCHOOL_name', 'h_SCHOOL_walking_time', 'h_SCHOOL_car_time', 'h_SCHOOL_rating', 'h_SCHOOL_avg_price']
-# COLLEGE_TABLE = ['COLLEGE_name', 'COLLEGE_walking_time', 'COLLEGE_car_time', 'COLLEGE_rating', 'COLLEGE_avg_price']
-# GYM_TABLE = ['gym_name', 'gym_walking_time', 'gym_car_time', 'gym_rating']
-# MARKET_TABLE = ['market_name', 'market_walking_time', 'market_car_time', 'market_rating']
-# HOSPITAL_TABLE = ['hospital_name', 'hospital_walking_time', 'hospital_car_time', 'hospital_rating', 'hospital_access']
-
-# r.add_table("GYM_TABLE", items, :header => true) do |t|
-#   t.add_column(:name, :name)
-#   t.add_column(:distance, :distance)
-# end
