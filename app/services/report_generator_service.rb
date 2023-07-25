@@ -7,7 +7,7 @@ class ReportGeneratorService < ApplicationService
 
   def generate(item)
     report = ODFReport::Report.new("#{@template_path}/#{item[:name]}.odt") do |r|
-      r.add_field :count, item[:total_count]
+      r.add_field :total_count, item[:total_count]
       r.add_field :closest_name, item[:closest][:name]
       r.add_field :closest_by_foot, item[:closest][:by_foot]
       r.add_field :closest_by_car, item[:closest][:by_foot]

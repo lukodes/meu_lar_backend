@@ -26,58 +26,58 @@ class FinderController < ApplicationController
   def place_list
     [
       {
+        name: 'academia',
+        keyword: 'academia',
+        type: 'gym',
+        count: 7
+      },
+      {
         name: 'drogaria',
         keyword: 'farmácia',
         type: 'pharmacy',
-        count: '12'
+        count: 12
       },
       {
         name: 'shopping',
         keyword: 'shopping',
         type: 'shopping_mall',
-        count: '7'
+        count: 7
       },
       {
         name: 'restaurante',
         keyword: 'restaurante',
         type: 'restaurant',
-        count: '7'
+        count: 7
       },
       {
         name: 'veterinario',
         keyword: 'veterinario',
         type: 'veterinary_care',
-        count: '7'
+        count: 7
       },
       {
         name: 'posto',
         keyword: 'posto de gasolina',
         type: 'gas_station',
-        count: '7'
-      },
-      {
-        name: 'academia',
-        keyword: 'academia',
-        type: 'gym',
-        count: '7'
+        count: 7
       },
       {
         name: 'mercado',
         keyword: 'mercado',
         type: 'supermarket',
-        count: '11'
+        count: 11
       },
       {
         name: 'hospital',
         keyword: 'hospital',
         type: 'hospital',
-        count: '7'
+        count: 7
       },
       {
         name: 'ensino_main',
         keyword: 'berçario',
         type: 'school',
-        count: '7'
+        count: 7
       }
     ].freeze
   end
@@ -88,19 +88,19 @@ class FinderController < ApplicationController
         name: 'ensino_fundamental',
         keyword: 'ensino fundamental',
         type: 'school',
-        count: '5',
+        count: 5,
       },
       {
         name: 'ensino_medio',
         keyword: 'ensino médio',
         type: 'school',
-        count: '5',
+        count: 5,
       },
       {
         name: 'ensino_superior',
         keyword: 'faculdade',
         type: 'university',
-        count: '5',
+        count: 5,
       }
     ]
   end

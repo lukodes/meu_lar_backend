@@ -8,6 +8,7 @@ node_modules/
 dist/
 tmp/
 .~*
+.byebug_history
 # Compiled Java class files
 *.class
 

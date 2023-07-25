@@ -62,8 +62,10 @@ class FinderService < ApplicationService
   def get_distance(latitude, longitude)
     walking = @gmaps.directions([@property_cordinates[0], @property_cordinates[1]], [latitude, longitude],
                                 mode: 'walking', alternatives: false, units: 'metric')
+
     car = @gmaps.directions([@property_cordinates[0], @property_cordinates[1]], [latitude, longitude], mode: 'driving',
                                                                                                        alternatives: false, units: 'metric')
+
     { walking: walking[0][:legs][0][:duration][:text], car: car[0][:legs][0][:duration][:text] }
   end
 
@@ -72,7 +74,7 @@ class FinderService < ApplicationService
     google_data = get_google_data(place)
     result[:total_count] = google_data.count
     items = []
-    google_data.take(place.count).each do |item|
+    google_data.take(place[:count]).each do |item|
       items << populate_item(item)
     end
     result[:items] = items
