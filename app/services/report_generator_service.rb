@@ -10,10 +10,10 @@ class ReportGeneratorService < ApplicationService
       r.add_field :total_count, item[:total_count]
       r.add_field :closest_name, item[:closest][:name]
       r.add_field :closest_by_foot, item[:closest][:by_foot]
-      r.add_field :closest_by_car, item[:closest][:by_foot]
+      r.add_field :closest_by_car, item[:closest][:by_car]
       r.add_field :top_name, item[:top][:name]
       r.add_field :top_by_foot, item[:top][:by_foot]
-      r.add_field :top_by_car, item[:top][:by_foot]
+      r.add_field :top_by_car, item[:top][:by_car]
 
       r.add_table('TABLE', item[:items], header: true) do |t|
         t.add_column(:name) { |table_item| table_item[:name].to_s }
@@ -21,6 +21,19 @@ class ReportGeneratorService < ApplicationService
         t.add_column(:by_car) { |table_item| table_item[:by_car].to_s }
         t.add_column(:total_rating) { |table_item| table_item[:total_rating].to_s }
         t.add_column(:rating) { |table_item| table_item[:rating].to_s }
+      end
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
+  def generate_summary(data)
+    report = ODFReport::Report.new("#{@template_path}/resumo.odt") do |r|
+      data.each do |key, value|
+        r.add_field key, value
       end
     end
 

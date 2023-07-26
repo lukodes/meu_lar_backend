@@ -6,9 +6,15 @@ class FinderController < ApplicationController
     report_service = ReportGeneratorService.new
     pdf = CombinePDF.new
 
-    generate_transport(service, report_service, pdf)
-    generate_school(service, report_service, pdf)
-    generate_convenience(service, report_service, pdf)
+    school_items = service.convenience(school_list)
+    convenience_items = service.convenience(place_list)
+    transport_data = service.transport
+
+    summary_data = get_summary(school_items, convenience_items, transport_data)
+    generate_summary(summary_data, report_service, pdf)
+    generate_transport(transport_data, report_service, pdf)
+    generate_school(school_items, report_service, pdf)
+    generate_convenience(convenience_items, report_service, pdf)
 
     pdf.save 'public/combined_full.pdf'
 
@@ -17,17 +23,46 @@ class FinderController < ApplicationController
 
   private
 
-  def generate_transport(service, report_service, pdf)
-    transport_data = service.transport
-    odt_path = report_service.generate_transport(transport_data)
+  def get_summary(school_items, convenience_items, _transport_data)
+    qtd_escolas = school_items.first[:total_count]
+    qtd_hospitais = convenience_items.find { |item| item[:name] == 'hospital' }[:total_count]
+    qtd_academias = convenience_items.find { |item| item[:name] == 'academia' }[:total_count]
+    qtd_drogarias = convenience_items.find { |item| item[:name] == 'drogaria' }[:total_count]
+    qtd_shoppings = convenience_items.find { |item| item[:name] == 'shopping' }[:total_count]
+    qtd_rests = convenience_items.find { |item| item[:name] == 'restaurante' }[:total_count]
+    qtd_vets = convenience_items.find { |item| item[:name] == 'veterinario' }[:total_count]
+    qtd_postos = convenience_items.find { |item| item[:name] == 'posto' }[:total_count]
+    qtd_mercados = convenience_items.find { |item| item[:name] == 'mercado' }[:total_count]
+
+    {
+      qtd_escolas: qtd_escolas,
+      qtd_hospitais: qtd_hospitais,
+      qtd_academias: qtd_academias,
+      qtd_drogarias: qtd_drogarias,
+      qtd_shoppings: qtd_shoppings,
+      qtd_rests: qtd_rests,
+      qtd_vets: qtd_vets,
+      qtd_postos: qtd_postos,
+      qtd_mercados: qtd_mercados
+    }
+  end
+
+  def generate_summary(data, report_service, pdf)
+    odt_path = report_service.generate_summary(data)
+    pdf_path = 'public/resumo'
+    Libreconv.convert(odt_path, pdf_path)
+    pdf << CombinePDF.load(pdf_path)
+  end
+
+  def generate_transport(data, report_service, pdf)
+    odt_path = report_service.generate_transport(data)
     pdf_path = 'public/transport'
     Libreconv.convert(odt_path, pdf_path)
     pdf << CombinePDF.load(pdf_path)
   end
 
-  def generate_convenience(service, report_service, pdf)
-    convenience_items = service.convenience(place_list)
-    convenience_items.each do |item|
+  def generate_convenience(data, report_service, pdf)
+    data.each do |item|
       odt_path = report_service.generate(item)
       pdf_path = "public/#{item[:name]}"
       Libreconv.convert(odt_path, pdf_path)
@@ -35,15 +70,14 @@ class FinderController < ApplicationController
     end
   end
 
-  def generate_school(service, report_service, pdf)
-    school_items = service.convenience(school_list)
-    school_main = school_items.find { |item| item[:name] == 'ensino_main' }
+  def generate_school(data, report_service, pdf)
+    school_main = data.find { |item| item[:name] == 'ensino_main' }
     odt_path = report_service.generate(school_main)
     pdf_path = "public/#{school_main[:name]}"
     Libreconv.convert(odt_path, pdf_path)
     pdf << CombinePDF.load(pdf_path)
 
-    odt_path = report_service.generate_school(school_items)
+    odt_path = report_service.generate_school(data)
     pdf_path = 'public/school'
     Libreconv.convert(odt_path, pdf_path)
     pdf << CombinePDF.load(pdf_path)
@@ -114,19 +148,19 @@ class FinderController < ApplicationController
         name: 'ensino_fundamental',
         keyword: 'ensino fundamental',
         type: 'school',
-        count: 5,
+        count: 5
       },
       {
         name: 'ensino_medio',
         keyword: 'ensino médio',
         type: 'school',
-        count: 5,
+        count: 5
       },
       {
         name: 'ensino_superior',
         keyword: 'faculdade',
         type: 'university',
-        count: 5,
+        count: 5
       }
     ]
   end
