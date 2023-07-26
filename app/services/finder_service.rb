@@ -17,45 +17,45 @@ class FinderService < ApplicationService
     result_items
   end
 
-  # def transporte
-  #   date = Date.tomorrow
-  #   dia_util = date.next_weekday
-  #   peak_time = DateTime.new(dia_util.year, dia_util.month, dia_util.day, 11, 0, 0) # 8 horas da manhã
+  def transport
+    date = Date.tomorrow
+    dia_util = date.next_weekday
+    peak_time = DateTime.new(dia_util.year, dia_util.month, dia_util.day, 11, 0, 0) # 8 horas da manhã
 
-  #   directions = @gmaps.directions(
-  #     "#{@property_cordinates[0]},#{@property_cordinates[1]}",
-  #     "#{@work_cordinates[0]},#{@work_cordinates[1]}",
-  #     mode: 'driving',
-  #     departure_time: peak_time,
-  #     language: 'pt-BR'
-  #   )
+    directions = @gmaps.directions(
+      "#{@property_cordinates[0]},#{@property_cordinates[1]}",
+      "#{@work_cordinates[0]},#{@work_cordinates[1]}",
+      mode: 'driving',
+      departure_time: peak_time,
+      language: 'pt-BR'
+    )
 
-  #   origin = "#{@property[:address]}, #{@property[:address_number]} - #{@property[:district]}, #{@property[:city]} - #{@property[:state]}, #{@property[:zip_code]}"
-  #   destination = "#{@work[:address]}, #{@work[:address_number]} - #{@work[:district]}, #{@work[:city]} - #{@work[:state]}, #{@work[:zip_code]}"
-  #   directions_public = @gmaps.directions(
-  #     origin,
-  #     destination,
-  #     mode: 'transit',
-  #     departure_time: peak_time,
-  #     language: 'pt-BR'
-  #   )
+    origin = "#{@property[:address]}, #{@property[:address_number]} - #{@property[:district]}, #{@property[:city]} - #{@property[:state]}, #{@property[:zip_code]}"
+    destination = "#{@work[:address]}, #{@work[:address_number]} - #{@work[:district]}, #{@work[:city]} - #{@work[:state]}, #{@work[:zip_code]}"
+    directions_public = @gmaps.directions(
+      origin,
+      destination,
+      mode: 'transit',
+      departure_time: peak_time,
+      language: 'pt-BR'
+    )
 
-  #   instructions_public = []
-  #   directions_public[0][:legs][0][:steps].each_with_index do |step, index|
-  #     instructions_public << { index: index, instruction: step[:html_instructions], distance: step[:distance][:text] }
-  #   end
+    instructions_public = []
+    directions_public[0][:legs][0][:steps].each_with_index do |step, index|
+      instructions_public << { index: index, instruction: step[:html_instructions], distance: step[:distance][:text] }
+    end
 
-  #   duration_peak = directions[0][:legs][0][:duration_in_traffic][:text]
-  #   duration_nopeak = directions[0][:legs][0][:duration][:text]
-  #   work_distance = directions[0][:legs][0][:distance][:text]
+    duration_peak = directions[0][:legs][0][:duration_in_traffic][:text]
+    duration_nopeak = directions[0][:legs][0][:duration][:text]
+    work_distance = directions[0][:legs][0][:distance][:text]
 
-  #   {
-  #     work_distance: work_distance,
-  #     duration_peak: duration_peak,
-  #     duration_nopeak: duration_nopeak,
-  #     instructions_public: instructions_public
-  #   }
-  # end
+    {
+      work_distance: work_distance,
+      duration_peak: duration_peak,
+      duration_nopeak: duration_nopeak,
+      instructions_public: instructions_public
+    }
+  end
 
   private
 

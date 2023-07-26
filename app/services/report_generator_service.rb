@@ -49,24 +49,24 @@ class ReportGeneratorService < ApplicationService
     file_path.to_s
   end
 
-  # def transporte
-  #   report = ODFReport::Report.new(@path) do |r|
-  #     r.add_field :distancia_trabalho, @items[:work_distance]
-  #     r.add_field :car_peak, @items[:duration_peak]
-  #     r.add_field :car_nopeak, @items[:duration_nopeak]
+  def generate_transport(item)
+    report = ODFReport::Report.new("#{@template_path}/transporte.odt") do |r|
+      r.add_field :distancia_trabalho, item[:work_distance]
+      r.add_field :car_peak, item[:duration_peak]
+      r.add_field :car_nopeak, item[:duration_nopeak]
 
-  #     r.add_table('TABLE_TRANSPORTE', @items[:instructions_public], header: true) do |t|
-  #       t.add_column(:step) { |item| "#{item[:index]}" }
-  #       t.add_column(:dist) { |item| "#{item[:distance]}" }
-  #       t.add_column(:instruction) { |item| "#{item[:instruction]}" }
-  #     end
-  #   end
+      r.add_table('TABLE_TRANSPORTE', item[:instructions_public], header: true) do |t|
+        t.add_column(:step) { |table_item| table_item[:index].to_s }
+        t.add_column(:dist) { |table_item| table_item[:distance].to_s }
+        t.add_column(:instruction) { |table_item| table_item[:instruction].to_s }
+      end
+    end
 
-  #   file_path = generate_report_path
-  #   report.generate(file_path)
+    file_path = generate_report_path
+    report.generate(file_path)
 
-  #   file_path.to_s
-  # end
+    file_path.to_s
+  end
 
   private
 

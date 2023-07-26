@@ -1,6 +1,6 @@
 defaults: &defaults
   default_login: "admin"
-  default_password: "DGZ*{l<jc=iVSjR"
+  default_password: "admin"
   jwt_secret_key: "secret"
   google_places_api_key: "AIzaSyAGdk98z1IBEapX_nyDiqxJQQ96ttcTVrY"
 
