@@ -89,7 +89,7 @@ class FinderController < ApplicationController
         name: 'academia',
         keyword: 'academia',
         type: 'gym',
-        count: 7
+        count: 12
       },
       {
         name: 'drogaria',
@@ -101,25 +101,25 @@ class FinderController < ApplicationController
         name: 'shopping',
         keyword: 'shopping',
         type: 'shopping_mall',
-        count: 7
+        count: 11
       },
       {
         name: 'restaurante',
         keyword: 'restaurante',
         type: 'restaurant',
-        count: 7
+        count: 11
       },
       {
         name: 'veterinario',
         keyword: 'veterinario',
         type: 'veterinary_care',
-        count: 7
+        count: 11
       },
       {
         name: 'posto',
         keyword: 'posto de gasolina',
         type: 'gas_station',
-        count: 7
+        count: 11
       },
       {
         name: 'mercado',
@@ -131,7 +131,7 @@ class FinderController < ApplicationController
         name: 'hospital',
         keyword: 'hospital',
         type: 'hospital',
-        count: 7
+        count: 11
       }
     ].freeze
   end

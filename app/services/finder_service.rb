@@ -66,7 +66,26 @@ class FinderService < ApplicationService
     car = @gmaps.directions([@property_cordinates[0], @property_cordinates[1]], [latitude, longitude], mode: 'driving',
                                                                                                        alternatives: false, units: 'metric')
 
-    { walking: walking[0][:legs][0][:duration][:text], car: car[0][:legs][0][:duration][:text] }
+    walking_value = walking[0][:legs][0][:duration][:value]
+    car_value = car[0][:legs][0][:duration][:value]
+
+    car_text = seconds_to_time_format(car_value)
+    walking_text = seconds_to_time_format(walking_value)
+
+    { walking: walking_text, car: car_text }
+  end
+
+  def seconds_to_time_format(seconds)
+    # Calculate the number of hours and minutes
+    hours = seconds / 3600
+    minutes = (seconds % 3600) / 60
+
+    # Build the formatted time string
+    formatted_time = ''
+    formatted_time += "#{hours}h " if hours.positive?
+    formatted_time += "#{minutes}m"
+
+    formatted_time
   end
 
   def get_data(place)
