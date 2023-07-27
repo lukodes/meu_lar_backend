@@ -30,6 +30,25 @@ class ReportGeneratorService < ApplicationService
     file_path.to_s
   end
 
+  def generate_finance(item)
+    report = ODFReport::Report.new("#{@template_path}/financiamento.odt") do |r|
+      r.add_field :val_house, item[:valor_imovel]
+      r.add_field :val_entrada, item[:valor_entrada]
+      r.add_field :val_fin, item[:valor_financiado]
+      r.add_field :val_prim_parcela, item[:valor_primeira_parcela]
+      r.add_field :val_ult_parcela, item[:valor_ultima_parcela]
+      r.add_field :val_tot_fin, item[:valor_total_financiamento]
+      r.add_field :val_tot_jurus, item[:valor_total_juros]
+      r.add_field :val_tot_pago, item[:valor_total_pago]
+      r.add_field :val_renda, item[:valor_renda]
+    end
+
+    file_path = generate_report_path
+    report.generate(file_path)
+
+    file_path.to_s
+  end
+
   def generate_summary(data)
     report = ODFReport::Report.new("#{@template_path}/resumo.odt") do |r|
       data.each do |key, value|

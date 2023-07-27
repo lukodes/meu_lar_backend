@@ -1,3 +1,5 @@
+include ActionView::Helpers::NumberHelper
+
 class FinderService < ApplicationService
   MIN_RATING = 5
   def initialize(property, work)
@@ -54,6 +56,39 @@ class FinderService < ApplicationService
       duration_peak: duration_peak,
       duration_nopeak: duration_nopeak,
       instructions_public: instructions_public
+    }
+  end
+
+  def calcula_financiamento_SAC(valor_imovel)
+    # Configurações
+    percentual_renda = 0.30
+    percentual_entrada = 0.20
+    taxa_juros = 0.11
+    meses = 420
+
+    # Calcula os valores
+    valor_entrada = valor_imovel * percentual_entrada
+    valor_financiado = valor_imovel - valor_entrada
+    amortizacao_mensal = valor_financiado / meses
+    valor_primeira_parcela = valor_financiado * (taxa_juros / 12) + amortizacao_mensal
+    valor_renda = valor_primeira_parcela / percentual_renda
+    valor_ultima_parcela = (valor_financiado - amortizacao_mensal * (meses - 1)) * (taxa_juros / 12) + amortizacao_mensal
+    valor_total_pago = (valor_primeira_parcela + valor_ultima_parcela) / 2 * meses
+    valor_total_juros = valor_total_pago - valor_financiado
+
+    # Retorna os resultados
+    {
+      valor_imovel: number_to_currency(valor_imovel, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_entrada: number_to_currency(valor_entrada, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_financiado: number_to_currency(valor_financiado, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_primeira_parcela: number_to_currency(valor_primeira_parcela, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_ultima_parcela: number_to_currency(valor_ultima_parcela, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_total_financiamento: number_to_currency(valor_financiado, unit: 'R$ ', separator: ',',
+                                                                      delimiter: '.'),
+      valor_renda: number_to_currency(valor_renda, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_total_juros: number_to_currency(valor_total_juros, unit: 'R$ ', separator: ',', delimiter: '.'),
+      valor_total_pago: number_to_currency((valor_total_pago + valor_entrada), unit: 'R$ ', separator: ',',
+                                                                               delimiter: '.')
     }
   end
 

@@ -5,16 +5,17 @@ class FinderController < ApplicationController
     service = FinderService.new(item_params[:property], item_params[:work])
     report_service = ReportGeneratorService.new
     pdf = CombinePDF.new
-
     school_items = service.convenience(school_list)
     convenience_items = service.convenience(place_list)
     transport_data = service.transport
+    finance_data = service.calcula_financiamento_SAC(item_params[:property][:financial_value])
 
     summary_data = get_summary(school_items, convenience_items, transport_data)
     generate_summary(summary_data, report_service, pdf)
     generate_transport(transport_data, report_service, pdf)
     generate_school(school_items, report_service, pdf)
     generate_convenience(convenience_items, report_service, pdf)
+    generate_finance(finance_data, report_service, pdf)
 
     pdf.save 'public/combined_full.pdf'
 
@@ -45,6 +46,13 @@ class FinderController < ApplicationController
       qtd_postos: qtd_postos,
       qtd_mercados: qtd_mercados
     }
+  end
+
+  def generate_finance(data, report_service, pdf)
+    odt_path = report_service.generate_finance(data)
+    pdf_path = 'public/financiamento'
+    Libreconv.convert(odt_path, pdf_path)
+    pdf << CombinePDF.load(pdf_path)
   end
 
   def generate_summary(data, report_service, pdf)
@@ -175,6 +183,7 @@ class FinderController < ApplicationController
         address_number
         state
         city
+        financial_value
         extra_info
       ],
       work: %i[
