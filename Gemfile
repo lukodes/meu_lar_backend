@@ -29,6 +29,7 @@ gem 'tzinfo-data', '~> 1.2022.7'
 
 group :development, :test do
   gem 'byebug', '~> 11.1.3'
+  gem 'dotenv-rails', '~> 2.8.1'
 end
 
 group :development do
