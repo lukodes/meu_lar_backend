@@ -1,5 +1,5 @@
 class ReportGeneratorService < ApplicationService
-  REPORT_PATH = '/tmp'
+  REPORT_PATH = Rails.root.join('docs')
 
   def initialize
     @template_path = Rails.root.join('app/assets/templates')
@@ -103,6 +103,8 @@ class ReportGeneratorService < ApplicationService
   private
 
   def generate_report_path
+    Dir.mkdir(REPORT_PATH) unless Dir.exist?(REPORT_PATH)
+
     filename = "new_property_report_#{Time.zone.now.strftime('%Y_%m_%d_%H_%M_%S')}_#{SecureRandom.uuid}.odt"
     "#{REPORT_PATH}/#{filename}"
   end
